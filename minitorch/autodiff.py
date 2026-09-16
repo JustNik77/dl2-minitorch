@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, Iterable, List, Tuple
+from typing import Any, Dict, Iterable, List, Set, Tuple
 
 from typing_extensions import Protocol
 
@@ -22,8 +22,11 @@ def central_difference(f: Any, *vals: Any, arg: int = 0, epsilon: float = 1e-6) 
     Returns:
         An approximation of $f'_i(x_0, \ldots, x_{n-1})$
     """
-    # TODO: Implement for Task 1.1.
-    raise NotImplementedError('Need to implement for Task 1.1')
+    left = list(vals)
+    right = list(vals)
+    left[arg] = left[arg] - epsilon
+    right[arg] = right[arg] + epsilon
+    return (f(*right) - f(*left)) / (2 * epsilon)
 
 
 variable_count = 1
@@ -61,8 +64,19 @@ def topological_sort(variable: Variable) -> Iterable[Variable]:
     Returns:
         Non-constant Variables in topological order starting from the right.
     """
-    # TODO: Implement for Task 1.4.
-    raise NotImplementedError('Need to implement for Task 1.4')
+    order: List[Variable] = []
+    visited: Set[int] = set()
+
+    def visit(node: Variable) -> None:
+        if node.is_constant() or node.unique_id in visited:
+            return
+        visited.add(node.unique_id)
+        for parent in node.parents:
+            visit(parent)
+        order.append(node)
+
+    visit(variable)
+    return reversed(order)
 
 
 def backpropagate(variable: Variable, deriv: Any) -> None:
@@ -76,8 +90,16 @@ def backpropagate(variable: Variable, deriv: Any) -> None:
 
     No return. Should write to its results to the derivative values of each leaf through `accumulate_derivative`.
     """
-    # TODO: Implement for Task 1.4.
-    raise NotImplementedError('Need to implement for Task 1.4')
+    derivatives: Dict[int, Any] = {variable.unique_id: deriv}
+    for node in topological_sort(variable):
+        d_output = derivatives[node.unique_id]
+        if node.is_leaf():
+            node.accumulate_derivative(d_output)
+        else:
+            for parent, d_input in node.chain_rule(d_output):
+                if not parent.is_constant():
+                    uid = parent.unique_id
+                    derivatives[uid] = derivatives.get(uid, 0.0) + d_input
 
 
 @dataclass
